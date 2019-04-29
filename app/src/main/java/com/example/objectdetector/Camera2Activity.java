@@ -13,6 +13,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
@@ -68,9 +69,6 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
     private HandlerThread mBackgroundThread;
     private Handler mBackgroundHandler;
 
-    private HandlerThread mInferenceThread;
-    private Handler mInferenceHandler;
-
     private ImageReader mImageReader;
     private CaptureRequest.Builder mPreviewRequestBuilder;
     private CaptureRequest mPreviewRequest;
@@ -98,7 +96,8 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
     private Paint paint2 = new Paint();
     private DecimalFormat df = new DecimalFormat("0.##");
     private String textToShow;
-    private Runnable inference;
+
+    private Canvas canvas;
 
     public void onPreviewSizeChosen(final Size size, final int rotation) {
         previewWidth = size.getWidth();
@@ -113,24 +112,19 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
             e.printStackTrace();
         }
 
-        inference =
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        processImage();
-                    }
-                };
-
     }
 
     protected void processImage() {
-        croppedBitmap = BlankFragment.getResizedBitmap(rgbFrameBitmap, cropSize, cropSize);
-        croppedBitmap = RotateBitmap(croppedBitmap, 90);
-        textToShow = classifer.classifyFrame(croppedBitmap);
 
         Recognition[] recognitions = classifer.getRecognitions();
 
-        Canvas canvas = mSurfaceHolder.lockCanvas();
+        canvas = mSurfaceHolder.lockCanvas();
+
+        canvas.drawColor( 0, PorterDuff.Mode.CLEAR );
+
+        mSurfaceHolder.unlockCanvasAndPost(canvas);
+
+        canvas = mSurfaceHolder.lockCanvas();
 
         int width = mTextureView.getBitmap().getWidth();
         int height = mTextureView.getBitmap().getHeight();
@@ -199,9 +193,9 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
 
         surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
         surfaceView.setZOrderOnTop(true);
-        SurfaceHolder mHolder = surfaceView.getHolder();
-        mHolder.setFormat(PixelFormat.TRANSPARENT);
-        mHolder.addCallback(new SurfaceHolder.Callback() {
+        mSurfaceHolder = surfaceView.getHolder();
+        mSurfaceHolder.setFormat(PixelFormat.TRANSPARENT);
+        mSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
 
@@ -347,7 +341,7 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
                         new CompareSizesByArea());
                 mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
                         ImageFormat.JPEG, 2);
-                mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mInferenceHandler);
+                mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
                 Point displaySize = new Point();
                 getWindowManager().getDefaultDisplay().getSize(displaySize);
@@ -418,13 +412,17 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
                 final ByteBuffer buffer = planes[0].getBuffer();
                 final byte[] data = new byte[buffer.capacity()];
                 buffer.get(data);
+
                 imageConverter =
                         new Runnable() {
                             @Override
                             public void run() {
-                                rgbFrameBitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                            }
+                                croppedBitmap = BlankFragment.getResizedBitmap(rgbFrameBitmap, cropSize, cropSize);
+                                croppedBitmap = RotateBitmap(croppedBitmap, 90);
+                                textToShow = classifer.classifyFrame(croppedBitmap);                            }
                         };
+
+                rgbFrameBitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
 
                 getRgbBytes();
 
@@ -437,8 +435,6 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
             Trace.endSection();
         }
     };
-
-
 
     protected void getRgbBytes() {
         imageConverter.run();
@@ -634,10 +630,6 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-
-        mInferenceThread = new HandlerThread("InferenceBackground");
-        mInferenceThread.start();
-        mInferenceHandler = new Handler(mInferenceThread.getLooper());
     }
 
     private void stopBackgroundThread() {
