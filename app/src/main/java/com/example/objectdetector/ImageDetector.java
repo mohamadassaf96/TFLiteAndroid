@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.os.SystemClock;
+import android.util.Log;
 
 import org.tensorflow.lite.Delegate;
 import org.tensorflow.lite.Interpreter;
@@ -16,14 +17,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ImageDetector {
 
     //app related, fixed
-    private static final String TAG = "objectdetector";
+    private static final String TAG = "ImageDetector";
 
     //image related, fixed
     private static final int DIM_BATCH_SIZE = 1;
@@ -34,12 +34,13 @@ public abstract class ImageDetector {
     //model related
     protected Interpreter tflite;
     private MappedByteBuffer tfliteModel;
-    Delegate gpuDelegate;
+    private Delegate gpuDelegate;
     private Interpreter.Options tfliteOptions = new Interpreter.Options();
     private List<String> labelList;
 
 
     ImageDetector(Activity activity) throws IOException {
+        Log.d(TAG, "Loading model and its components.");
         tfliteModel = loadModelFile(activity);
         tflite = new Interpreter(tfliteModel, tfliteOptions);
         labelList = loadLabelList(activity);
@@ -47,48 +48,16 @@ public abstract class ImageDetector {
         imgData.order(ByteOrder.nativeOrder());
     }
 
-    public void useGpu() {
-        tfliteOptions = new Interpreter.Options();
-        try {
-            gpuDelegate = Class.forName("org.tensorflow.lite.experimental.GpuDelegate")
-                    .asSubclass(Delegate.class)
-                    .getDeclaredConstructor()
-                    .newInstance();
-        }
-        catch (Exception e){
-            return;
-        }
-        tfliteOptions.addDelegate(gpuDelegate);
-        recreateInterpreter();
-    }
-
-    public void useCPU(){
-        tfliteOptions = new Interpreter.Options();
-        tfliteOptions.setUseNNAPI(false);
-        recreateInterpreter();
-    }
-
-    public void useNNAPI(){
-        tfliteOptions = new Interpreter.Options();
-        tfliteOptions.setUseNNAPI(true);
-        recreateInterpreter();
-    }
-
-    private void recreateInterpreter() {
-        if (tflite != null) {
-            tflite.close();
-            tflite = new Interpreter(tfliteModel, tfliteOptions);
-        }
-    }
-
     String classifyFrame(Bitmap bitmap) {
         if (tflite == null){
             return "Uninitialized Classifier";
         }
+        Log.d(TAG, "Running inference.");
         convertBitmapToByteBuffer(bitmap);
         long startTime = SystemClock.uptimeMillis();
         runInference();
         long endTime = SystemClock.uptimeMillis();
+        Log.d(TAG, "Running recognition.");
         recognize();
         String textToShow = Long.toString(endTime - startTime) + "ms";
         return textToShow;
@@ -127,10 +96,6 @@ public abstract class ImageDetector {
                 addPixelValue(val);
             }
         }
-    }
-
-    protected int getNumLabels() {
-        return labelList.size();
     }
 
     protected List<String> getlabelList() {

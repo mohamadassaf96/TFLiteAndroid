@@ -15,14 +15,12 @@ import java.util.Map;
 
 public class SSDdetectorQuant extends ImageDetector {
 
-    private float[][] labelProbArray = null;
-
     private static final int NUM_DETECTIONS = 10;
     private float[][][] outputLocations;
     private float[][] outputClasses;
     private float[][] outputScores;
     private float[] numDetections;
-    Map<Integer, Object> outputMap = new HashMap<>();
+    private Map<Integer, Object> outputMap = new HashMap<>();
     private Recognition[] recognitions = null;
 
     SSDdetectorQuant(Activity activity) throws IOException {
@@ -35,7 +33,6 @@ public class SSDdetectorQuant extends ImageDetector {
         outputMap.put(1, outputClasses);
         outputMap.put(2, outputScores);
         outputMap.put(3, numDetections);
-        labelProbArray = new float[1][getNumLabels()];
     }
 
     @Override

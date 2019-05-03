@@ -28,6 +28,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Trace;
@@ -35,7 +36,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
@@ -43,6 +43,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.widget.Toast;
+
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -134,7 +135,7 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
         } else {
             for (Recognition recognition: recognitions){
                 if (recognition.getConfidence()>0.5) {
-                    denormalizeRect(recognition.getLocation(), width, height);
+                    Utils.denormalizeRect(recognition.getLocation(), width, height, classifer.getImageSizeX(), classifer.getImageSizeY());
                     canvas.drawRect( recognition.getLocation(), paint);
                     String toShow = recognition.getTitle() +" "+ df.format( 100*recognition.getConfidence()) +"%";
                     canvas.drawText(toShow+" "+textToShow, recognition.getLocation().left, recognition.getLocation().top-4, paint2);
@@ -143,13 +144,6 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
             mSurfaceHolder.unlockCanvasAndPost(canvas);
         }
         readyForNextImage();
-    }
-
-    private void denormalizeRect(final RectF R, int width, int height){
-        R.left = R.left * width/300;
-        R.right = R.right * width/300 ;
-        R.bottom = R.bottom*height/300;
-        R.top = R.top*height/300;
     }
 
     protected int getScreenOrientation() {
@@ -168,13 +162,6 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
     @Override
     public void onPreviewFrame(final byte[] bytes, final Camera camera) {
 
-    }
-
-    private Bitmap RotateBitmap(Bitmap source, float angle)
-    {
-        Matrix matrix = new Matrix();
-        matrix.postRotate(angle);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
     protected synchronized void runInBackground(final Runnable r) {
@@ -417,8 +404,8 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
                         new Runnable() {
                             @Override
                             public void run() {
-                                croppedBitmap = BlankFragment.getResizedBitmap(rgbFrameBitmap, cropSize, cropSize);
-                                croppedBitmap = RotateBitmap(croppedBitmap, 90);
+                                croppedBitmap = Utils.getResizedBitmap(rgbFrameBitmap, cropSize, cropSize);
+                                croppedBitmap = Utils.RotateBitmap(croppedBitmap, 90);
                                 textToShow = classifer.classifyFrame(croppedBitmap);                            }
                         };
 
@@ -685,6 +672,5 @@ public class Camera2Activity extends MainActivity implements Camera.PreviewCallb
         stopBackgroundThread();
         super.onPause();
     }
-
 
 }
