@@ -75,7 +75,7 @@ public class ClassificationFragment extends Fragment  {
         useCPU = (CheckBox) view.findViewById(R.id.useGPU);
         textView.setVisibility(View.INVISIBLE);
         try {
-            classifer = new InceptionV4Float(getActivity());
+            classifer = new InceptionV3Float(getActivity());
         }
         catch (Exception e){
             Log.e(TAG, "Cannot initialize classifier.");

@@ -133,7 +133,7 @@ public abstract class ImageClassifier {
         return textToShow;
     }
 
-    void applyFilter(){
+    private void applyFilter(){
         int num_labels = getNumLabels();
         for (int j=0; j<num_labels; ++j){
             filterLabelProbArray[0][j] += FILTER_FACTOR*(getProbability(j) - filterLabelProbArray[0][j]);

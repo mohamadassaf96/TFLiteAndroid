@@ -15,15 +15,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.util.Log;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link DetectionFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link DetectionFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-
 public class DetectionFragment extends Fragment  {
 
     private static final String TAG = "DetectionFragment";
@@ -36,10 +27,8 @@ public class DetectionFragment extends Fragment  {
     private SSDdetectorQuant classifer;
     private Bitmap bitmap;
 
-    /** An additional thread for running tasks that shouldn't block the UI. */
     private HandlerThread backgroundThread;
 
-    /** A {@link Handler} for running tasks in the background. */
     private Handler backgroundHandler;
 
     //private OnFragmentInteractionListener mListener;
@@ -119,7 +108,7 @@ public class DetectionFragment extends Fragment  {
                 });
     }
 
-    protected void sendToBackGround(Uri uri){
+    private void sendToBackGround(Uri uri){
         Log.d(TAG, "Converting to bitmap.");
             backgroundHandler.post(() -> {
                 try {
