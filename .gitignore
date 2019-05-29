@@ -11,4 +11,5 @@
 
 /.gradle/
 /.idea/
-
+app/src/main/assets/inception_v3.tflite
+app/src/main/assets/labels.txt
